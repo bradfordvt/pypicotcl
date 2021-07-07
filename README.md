@@ -13,7 +13,7 @@ from this code include making the parser and interpreter class based.
 Enhancements to the Tcl commands like puts and if are also to be included
 to make them more compliant to Tcl.
 
-##pypicotcl package
+## pypicotcl package
 The pypicotcl package contains the pypicotcl.py module which contains all the
 core classes and code for the interpreter.  Specialized classes
 can be created to inherit the core interpreter and add additional
