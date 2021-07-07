@@ -454,10 +454,37 @@ class picolInterp(object):
         return PICOTCL.PICOTCL_OK
 
     def command_puts(self, argv, pd):
-        if len(argv) != 2:
-            return self.arity_err(argv[0])
-        print("{:s}\n".format(argv[1]))
-        return PICOTCL.PICOTCL_OK
+        current = 1
+        argc = len(argv)
+        channel_id = sys.stdout
+        end_val = "\n"
+        if argc >= 2:
+            # Far not enough arguments given!
+            if current >= argc:
+                return self.arity_err(argv[0] + ": ?-nonewline? ?channelId? string")
+            if argv[current].lower() == "-nonewline":
+                end_val = ""
+                current += 1
+            if current >= argc:
+                return self.arity_err(argv[0] + ": ?-nonewline? ?channelId? string")
+            if argv[current].lower() == "stdout":
+                channel_id = sys.stdout
+                current += 1
+            elif argv[current].lower() == "stderr":
+                channel_id = sys.stderr
+                current += 1
+            elif argv[current][0] == "$":  # a variable with file descriptor detected as a channel
+                channel_id = self.get_var(argv[current])
+                if isinstance(channel_id, str) and channel_id == "stdout":
+                    channel_id = sys.stdout
+                elif isinstance(channel_id, str) and channel_id == "stderr":
+                    channel_id = sys.stderr
+                current += 1
+            if current >= argc:
+                return self.arity_err(argv[0] + ": ?-nonewline? ?channelId? string")
+            print("{:s}".format(argv[current]), end=end_val, file=channel_id)
+            return PICOTCL.PICOTCL_OK
+        return self.arity_err(argv[0] + ": ?-nonewline? ?channelId? string")
 
     def command_if(self, argv, pd):
         if len(argv) != 3 and len(argv) != 5:
