@@ -68,7 +68,7 @@ class picotclParser(object):
     def __init__(self, _text):  # picotclInitParser
         self.text = _text
         self.p = 0  # current text position
-        self.len = len(_text)  # remaining length
+        self.length = len(_text)  # remaining length
         self.start = 0  # token start
         self.end = 0  # token end
         self.type = TOKEN_TYPES.PT_EOL  # token type, PT_...
@@ -78,7 +78,7 @@ class picotclParser(object):
         self.start = self.p
         while self.p < len(self.text) and self.text[self.p] in [' ', '\t', '\n', '\r']:
             self.p += 1
-            self.len -= 1
+            self.length -= 1
         self.end = self.p
         self.type = TOKEN_TYPES.PT_SEP
         return PICOTCL.PICOTCL_OK
@@ -89,11 +89,11 @@ class picotclParser(object):
             AssertionError("parse_eol() called with no more tokens available.")
         while self.text[self.p] in [' ', '\t', '\n', '\r', ';']:
             self.p += 1
-            self.len -= 1
-            if self.len == 0:
+            self.length -= 1
+            if self.length == 0:
                 break
             if self.p >= len(self.text):
-                raise AssertionError("self.len does not detect out of bound condition.")
+                raise AssertionError("self.length does not detect out of bound condition.")
         self.end = self.p
         self.type = TOKEN_TYPES.PT_EOL
         return PICOTCL.PICOTCL_OK
@@ -102,10 +102,10 @@ class picotclParser(object):
         level = 1
         blevel = 0
         self.p += 1  # Skip "["
-        self.len -= 1
+        self.length -= 1
         self.start = self.p
         while self.p < len(self.text):
-            if self.len == 0:
+            if self.length == 0:
                 break
             elif self.text[self.p] == '[' and blevel == 0:
                 level += 1
@@ -115,32 +115,32 @@ class picotclParser(object):
                     break
             elif self.text[self.p] == '\\':
                 self.p += 1
-                self.len -= 1
+                self.length -= 1
             elif self.text[self.p] == '{':
                 blevel += 1
             elif self.text[self.p] == '}':
                 if blevel != 0:
                     blevel -= 1
             self.p += 1
-            self.len -= 1
+            self.length -= 1
         self.end = self.p
         self.type = TOKEN_TYPES.PT_CMD
         if self.text[self.p] == ']':
             self.p += 1
-            self.len -= 1
+            self.length -= 1
         return PICOTCL.PICOTCL_OK
 
     def parse_var(self):
         # skip the '$'
         self.p += 1
-        self.len -= 1
+        self.length -= 1
         self.start = self.p
 
         while self.p < len(self.text):
             c = self.text[self.p]
             if (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or (c >= '0' and c <= '9') or c == '_':
                 self.p += 1
-                self.len -= 1
+                self.length -= 1
                 continue
             break
         if self.start == self.p:  # It's just a single char string "$"
@@ -156,25 +156,25 @@ class picotclParser(object):
         level = 1
         self.p += 1
         self.start = self.p
-        self.len -= 1
+        self.length -= 1
         while True:
-            if self.len >= 2 and self.text[self.p] == '\\':
+            if self.length >= 2 and self.text[self.p] == '\\':
                 self.p += 1
-                self.len -= 1
-            elif self.len == 0 or self.text[self.p] == '}':
+                self.length -= 1
+            elif self.length == 0 or self.text[self.p] == '}':
                 level -= 1
-                if level == 0 or self.len == 0:
+                if level == 0 or self.length == 0:
                     self.end = self.p
-                    if self.len:
+                    if self.length:
                         # Skip final closed brace
                         self.p += 1
-                        self.len -= 1
+                        self.length -= 1
                     self.type = TOKEN_TYPES.PT_STR
                     return PICOTCL.PICOTCL_OK
             elif self.text[self.p] == '{':
                 level += 1
             self.p += 1
-            self.len -= 1
+            self.length -= 1
 
     def parse_string(self):
         newword = (self.type == TOKEN_TYPES.PT_SEP or self.type == TOKEN_TYPES.PT_EOL or self.type == TOKEN_TYPES.PT_STR)
@@ -183,18 +183,18 @@ class picotclParser(object):
         elif newword and self.text[self.p] == '"':
             self.insidequote = True
             self.p += 1
-            self.len -= 1
+            self.length -= 1
         self.start = self.p
         while True:
-            if self.len == 0:
+            if self.length == 0:
                 self.end = self.p
                 self.type = TOKEN_TYPES.PT_ESC
                 return PICOTCL.PICOTCL_OK
             c = self.text[self.p]
             if c == '\\':
-                if self.len >= 2:
+                if self.length >= 2:
                     self.p += 1
-                    self.len -= 1
+                    self.length -= 1
             elif c == '$' or c == '[':
                 self.end = self.p
                 self.type = TOKEN_TYPES.PT_ESC
@@ -209,21 +209,21 @@ class picotclParser(object):
                     self.end = self.p
                     self.type = TOKEN_TYPES.PT_ESC
                     self.p += 1
-                    self.len -= 1
+                    self.length -= 1
                     self.insidequote = False
                     return PICOTCL.PICOTCL_OK
             self.p += 1
-            self.len -= 1
+            self.length -= 1
 
     def parse_comment(self):
-        while self.len and self.p != '\n':
+        while self.length and self.p != '\n':
             self.p += 1
-            self.len -= 1
+            self.length -= 1
         return PICOTCL.PICOTCL_OK
 
     def get_token(self):
         while True:
-            if not self.len:
+            if not self.length:
                 if self.type != TOKEN_TYPES.PT_EOL and self.type != TOKEN_TYPES.PT_EOF:
                     self.type = TOKEN_TYPES.PT_EOL
                 else:
@@ -487,16 +487,49 @@ class picolInterp(object):
         return self.arity_err(argv[0] + ": ?-nonewline? ?channelId? string")
 
     def command_if(self, argv, pd):
-        if len(argv) != 3 and len(argv) != 5:
-            return self.arity_err(argv[0])
-        retcode = self.eval(argv[1])
-        if retcode != PICOTCL.PICOTCL_OK:
-            return retcode
-        if int(self.result):
-            return self.eval(argv[2])
-        elif len(argv) == 5:
-            self.eval(argv[4])
-        return PICOTCL.PICOTCL_OK
+        current = 1
+        argc = len(argv)
+        if argc >= 3:
+            while True:
+                # Far not enough arguments given!
+                if current >= argc:
+                    return self.arity_err(argv[0] + ": condition ?then? trueBody ?elseif ...? ?else? falseBody")
+                retval, boolean = self.get_bool_from_expression(argv[current])
+                current += 1
+                if retval != PICOTCL.PICOTCL_OK:
+                    return retval
+                # There lacks something, isn't it?
+                if current >= argc:
+                    return self.arity_err(argv[0] + ": condition ?then? trueBody ?elseif ...? ?else? falseBody")
+                if argv[current].lower() == "then":
+                    current += 1
+                # Tsk tsk, no then-clause?
+                if current >= argc:
+                    return self.arity_err(argv[0] + ": condition ?then? trueBody ?elseif ...? ?else? falseBody")
+                if boolean:
+                    return self.eval(argv[current])
+                # Ok: no else-clause follows
+                current += 1
+                if current >= argc:
+                    self.set_result("")
+                    return PICOTCL.PICOTCL_OK
+                falsebody = current
+                current += 1
+                if argv[falsebody].lower() == "else":
+                    # IIICKS - else-clause isn't last cmd?
+                    if current != (argc - 1):
+                        return self.arity_err(argv[0] + ": condition ?then? trueBody ?elseif ...? ?else? falseBody")
+                    return self.eval(argv[current])
+                elif argv[falsebody].lower() == "elseif":
+                    # Ok: elseif follows meaning all the stuff
+                    # again (how boring...)
+                    continue
+                # OOPS - else-clause is not last cmd?
+                elif falsebody != (argc - 1):
+                    return self.arity_err(argv[0] + ": condition ?then? trueBody ?elseif ...? ?else? falseBody")
+                return self.eval(argv[falsebody])
+            return PICOTCL.PICOTCL_OK
+        return self.arity_err(argv[0] + ": condition ?then? trueBody ?elseif ...? ?else? falseBody")
 
     def command_while(self, argv, pd):
         if len(argv) != 3:
