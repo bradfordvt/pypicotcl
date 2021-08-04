@@ -92,8 +92,8 @@ class picotclParser(object):
             self.length -= 1
             if self.length == 0:
                 break
-            if self.p >= len(self.text):
-                raise AssertionError("self.length does not detect out of bound condition.")
+            # if self.p >= len(self.text):
+            #     raise AssertionError("self.length does not detect out of bound condition.")
         self.end = self.p
         self.type = TOKEN_TYPES.PT_EOL
         return PICOTCL.PICOTCL_OK
@@ -216,7 +216,7 @@ class picotclParser(object):
             self.length -= 1
 
     def parse_comment(self):
-        while self.length and self.p != '\n':
+        while self.length and self.text[self.p] != '\n':
             self.p += 1
             self.length -= 1
         return PICOTCL.PICOTCL_OK
@@ -252,7 +252,7 @@ class picotclParser(object):
                 return self.parse_string()
             else:
                 return self.parse_string()
-        return PICOTCL.PICOTCL_ERR
+        return PICOTCL.PICOTCL_OK
 
 
 class picolVar(object):
@@ -348,16 +348,20 @@ class picolInterp(object):
     def eval(self, _t):
         argc = 0
         argv = []
+        retcode = PICOTCL.PICOTCL_OK
         self.set_result("")
         parser = picotclParser(_t)
         while True:
-            if not len(_t):
-                AssertionError("Evaluating an empty string expression.")
+            # if not len(_t):
+            #     raise AssertionError("Evaluating an empty string expression.")
             prevtype = parser.type
             parser.get_token()
             if parser.type == TOKEN_TYPES.PT_EOF:
                 break
-            _t = parser.text[parser.start:parser.end]
+            if parser.start == parser.end:
+                _t = ""
+            else:
+                _t = parser.text[parser.start:parser.end]
             if parser.type == TOKEN_TYPES.PT_VAR:
                 _v = self.get_var(_t)
                 if not _v:
@@ -375,11 +379,12 @@ class picolInterp(object):
                 # TBD: escape handling missing!
                 pass
             elif parser.type == TOKEN_TYPES.PT_SEP:
+                prevtype = parser.type
                 continue
             # We have a complete command + args. Call it!
             if parser.type == TOKEN_TYPES.PT_EOL:
                 _c = picolCmd()
-                # prevtype = parser.type
+                prevtype = parser.type
                 if argc:
                     _c = self.get_command(argv[0])
                     if _c is None:
@@ -588,6 +593,7 @@ class picolInterp(object):
         self.register_command("continue", self.command_retcodes, None)
         self.register_command("proc", self.command_proc, None)
         self.register_command("return", self.command_return, None)
+        self.register_command("string", self.command_string, None)
 
     def command_callproc(self, argv, _pd):
         x = _pd
@@ -631,6 +637,423 @@ class picolInterp(object):
             errcode = PICOTCL.PICOTCL_OK
         self.drop_callframe()  # remove the called proc callframe
         return errcode
+
+    def command_string(self, argv, pd):
+        current = 1
+        argc = len(argv)
+        if argc >= 2:
+            if argv[current].lower() == "cat":
+                return self.__command_string_cat(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "compare":
+                return self.__command_string_compare(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "equal":
+                return self.__command_string_equal(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "index":
+                return self.__command_string_index(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "length":
+                return self.__command_string_length(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "range":
+                return self.__command_string_range(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "repeat":
+                return self.__command_string_repeat(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "reverse":
+                return self.__command_string_reverse(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "tolower":
+                return self.__command_string_tolower(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "toupper":
+                return self.__command_string_toupper(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "trim":
+                return self.__command_string_trim(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "trimright":
+                return self.__command_string_trimright(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "trimleft":
+                return self.__command_string_trimleft(argv[0], argc - 2, argv[2:], pd)
+
+        else:
+            return self.arity_err(argv[0] + ": see manual page for syntax")
+
+    def __command_string_cat(self, cmd, argc, argv, pd):
+        current = 0
+        length = argc
+        s = ""
+        while length:
+            s += argv[current]
+            current += 1
+            length -= 1
+        self.set_result(s)
+        return PICOTCL.PICOTCL_OK
+
+    def __command_string_compare(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        nocase = 0
+        lensize = None
+        if largc >= 2:
+            if argv[current].lower() == "-nocase":
+                nocase = 1
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if argv[current].lower() == "-length":
+                current += 1
+                if current >= largc:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+                lensize = int(argv[current])
+                if lensize < 0:
+                    lensize = None
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if argv[current].lower() == "-nocase":
+                nocase = 1
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            s1 = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            s2 = argv[current]
+            if nocase:
+                s1 = s1.upper()
+                s2 = s2.upper()
+            if lensize is not None:
+                if len(s1) < lensize:
+                    lensize = len(s1)
+                if len(s2) < lensize:
+                    lensize = len(s2)
+                if s1[:lensize] == s2[:lensize]:
+                    self.set_result('0')
+                    return PICOTCL.PICOTCL_OK
+                elif s1[:lensize] < s2[:lensize]:
+                    self.set_result('-1')
+                    return PICOTCL.PICOTCL_OK
+                elif s1[:lensize] > s2[:lensize]:
+                    self.set_result('1')
+                    return PICOTCL.PICOTCL_OK
+                else:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            elif s1 == s2:
+                self.set_result('0')
+                return PICOTCL.PICOTCL_OK
+            elif s1 < s2:
+                self.set_result('-1')
+                return PICOTCL.PICOTCL_OK
+            elif s1 > s2:
+                self.set_result('1')
+                return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_equal(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        nocase = 0
+        lensize = None
+        if largc >= 2:
+            if argv[current].lower() == "-nocase":
+                nocase = 1
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if argv[current].lower() == "-length":
+                current += 1
+                if current >= largc:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+                lensize = int(argv[current])
+                if lensize < 0:
+                    lensize = None
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if argv[current].lower() == "-nocase":
+                nocase = 1
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            s1 = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            s2 = argv[current]
+            if nocase:
+                s1 = s1.upper()
+                s2 = s2.upper()
+            if lensize is not None:
+                if len(s1) < lensize:
+                    lensize = len(s1)
+                if len(s2) < lensize:
+                    lensize = len(s2)
+                for i in range(lensize):
+                    if s1[i] != s2[i]:
+                        self.set_result('0')
+                        return PICOTCL.PICOTCL_OK
+                self.set_result('1')
+                return PICOTCL.PICOTCL_OK
+            elif s1 == s2:
+                self.set_result('1')
+                return PICOTCL.PICOTCL_OK
+            else:
+                self.set_result('0')
+                return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_index(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        index = None
+        if largc >= 2:
+            s = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": index <string> <index>")
+            if argv[current].lower() == "end":
+                current += 1
+                index = len(s) - 1
+                if current >= largc:
+                    return self.arity_err(cmd + ": index <string> <index>")
+            elif argv[current].find('+') != -1:
+                # end+n, m+n construct
+                current += 1
+                return self.arity_err(cmd + ": index <string> " + argv[current - 1] + " not supported yet.")
+            elif argv[current].find('-') != -1:
+                # end-n, m-n construct
+                current += 1
+                return self.arity_err(cmd + ": index <string> " + argv[current - 1] + " not supported yet.")
+            else:
+                try:
+                    index = int(argv[current])
+                    if index < 0:
+                        index = None
+                except ValueError:
+                    return self.arity_err(cmd + ": index <string> <index>")
+            if current >= largc:
+                return self.arity_err(cmd + ": index <string> <index>")
+            if index is None:
+                self.set_result("")
+                return PICOTCL.PICOTCL_OK
+            else:
+                self.set_result(s[index])
+                return PICOTCL.PICOTCL_OK
+
+    def __command_string_length(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        if largc == 1:
+            self.set_result(str(len(argv[current])))
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": length <string>")
+
+    def __command_string_range(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        first = 0
+        last = 0
+        if largc == 3:
+            s = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            try:
+                first = int(argv[current])
+                current += 1
+            except ValueError:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            try:
+                last = int(argv[current])
+                current += 1
+            except ValueError:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if first < 0:
+                first = 0
+            if last >= len(s):
+                last = len(s)
+            if first > last:
+                self.set_result("")
+                return PICOTCL.PICOTCL_OK
+            self.set_result(s[first:last])
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_repeat(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        if largc == 2:
+            count = 1
+            s = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            else:
+                try:
+                    count = int(argv[current])
+                    current += 1
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            sb = ""
+            for i in range(0, count):
+                sb = sb + s
+            self.set_result(sb)
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_reverse(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        if largc == 1:
+            self.set_result(argv[current][::-1])
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_tolower(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        first = 0
+        if largc >= 1:
+            s = argv[current]
+            last = len(s)
+            current += 1
+            if current < largc:
+                try:
+                    first = int(argv[current])
+                    current += 1
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            if current < largc:
+                try:
+                    last = int(argv[current]) + 1
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            if first < 0:
+                first = 0
+            if last >= len(s):
+                last = len(s)
+            if first > last:
+                self.set_result("")
+                return PICOTCL.PICOTCL_OK
+            self.set_result(s[first:last].lower())
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_toupper(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        first = 0
+        if largc >= 1:
+            s = argv[current]
+            last = len(s)
+            current += 1
+            if current < largc:
+                try:
+                    first = int(argv[current])
+                    current += 1
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            if current < largc:
+                try:
+                    last = int(argv[current]) + 1
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            if first < 0:
+                first = 0
+            if last >= len(s):
+                last = len(s)
+            if first > last:
+                self.set_result("")
+                return PICOTCL.PICOTCL_OK
+            self.set_result(s[first:last].upper())
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_trim(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        lc = 0
+        targv = []
+        if largc >= 1:
+            targv.append(argv[current])
+            ls = len(targv[current])
+            current += 1
+            if current < largc:
+                targv.append(argv[current])
+                lc = len(targv[current])
+                current += 1
+            if current < largc:
+                return self.arity_err(cmd + ": wrong number of arguments.")
+            ret = self.__command_string_trimleft(cmd, argc, targv, pd)
+            if ret != PICOTCL.PICOTCL_OK:
+                return ret
+            targv[0] = self.get_result()
+            ret = self.__command_string_trimright(cmd, argc, targv, pd)
+            if ret != PICOTCL.PICOTCL_OK:
+                return ret
+            self.set_result(self.get_result())
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_trimleft(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        chars = None
+        lc = 0
+        if largc >= 1:
+            s = argv[current]
+            ls = len(s)
+            current += 1
+            if current < largc:
+                chars = argv[current]
+                lc = len(chars)
+                current += 1
+            if current < largc:
+                return self.arity_err(cmd + ": wrong number of arguments.")
+            if chars is not None:
+                if s[:lc] == chars:
+                    self.set_result(s[lc:])
+                else:
+                    self.set_result(s)
+                return PICOTCL.PICOTCL_OK
+            else:
+                self.set_result(s.lstrip())
+                return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_trimright(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        chars = None
+        lc = 0
+        if largc >= 1:
+            s = argv[current]
+            ls = len(s)
+            current += 1
+            if current < largc:
+                chars = argv[current]
+                lc = len(chars)
+                current += 1
+            if current < largc:
+                return self.arity_err(cmd + ": wrong number of arguments.")
+            if chars is not None:
+                if s[ls - lc:] == chars:
+                    self.set_result(s[:-lc])
+                else:
+                    self.set_result(s)
+                return PICOTCL.PICOTCL_OK
+            else:
+                self.set_result(s.rstrip())
+                return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
 
 
 def main(argc, argv):
