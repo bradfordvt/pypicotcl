@@ -668,6 +668,8 @@ class picolInterp(object):
                 return self.__command_string_trimright(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "trimleft":
                 return self.__command_string_trimleft(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "replace":
+                return self.__command_string_replace(argv[0], argc - 2, argv[2:], pd)
 
         else:
             return self.arity_err(argv[0] + ": see manual page for syntax")
@@ -1051,6 +1053,47 @@ class picolInterp(object):
                 return PICOTCL.PICOTCL_OK
             else:
                 self.set_result(s.rstrip())
+                return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_replace(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        first = 0
+        last = 0
+        newstring = None
+        if largc >= 3:
+            s = argv[current]
+            current += 1
+            if current < largc:
+                try:
+                    first = int(argv[current])
+                    current += 1
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            if current < largc:
+                try:
+                    last = int(argv[current]) + 1
+                    current += 1
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            if first < 0:
+                first = 0
+            if last >= len(s):
+                last = len(s)
+            if first > last or last < 0:
+                self.set_result(s)
+                return PICOTCL.PICOTCL_OK
+            if current < largc:
+                newstring = argv[current]
+            if newstring is None:
+                s = s[:first] + s[last:]
+                self.set_result(s)
+                return PICOTCL.PICOTCL_OK
+            else:
+                s = s[:first] + newstring + s[last:]
+                self.set_result(s)
                 return PICOTCL.PICOTCL_OK
         else:
             return self.arity_err(cmd + ": see manual page for syntax")

@@ -88,3 +88,7 @@ puts -nonewline [string trim $t1]
 puts ":"
 puts -nonewline [string trim $t2 "abc"]
 puts ":"
+
+set r "Hello 1234567 , world!"
+puts [string replace $r 5 13]
+puts [string replace $r 5 13 " John"]
