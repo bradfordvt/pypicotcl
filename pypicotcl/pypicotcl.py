@@ -648,6 +648,8 @@ class picolInterp(object):
                 return self.__command_string_compare(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "equal":
                 return self.__command_string_equal(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "first":
+                return self.__command_string_first(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "index":
                 return self.__command_string_index(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "length":
@@ -798,6 +800,27 @@ class picolInterp(object):
             else:
                 self.set_result('0')
                 return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __command_string_first(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        startIndex = 0
+        if largc >= 2:
+            needleString = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            haystackString = argv[current]
+            current += 1
+            if current < largc:
+                try:
+                    startIndex = int(argv[current])
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            self.set_result(str(haystackString.find(needleString, startIndex)))
+            return PICOTCL.PICOTCL_OK
         else:
             return self.arity_err(cmd + ": see manual page for syntax")
 

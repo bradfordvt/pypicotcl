@@ -92,3 +92,8 @@ puts ":"
 set r "Hello 1234567 , world!"
 puts [string replace $r 5 13]
 puts [string replace $r 5 13 " John"]
+
+puts -nonewline [string first "123" $r]
+puts " must equal 6"
+puts -nonewline [string first " " $r 14]
+puts " must equal 15"
