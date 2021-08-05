@@ -97,3 +97,11 @@ puts -nonewline [string first "123" $r]
 puts " must equal 6"
 puts -nonewline [string first " " $r 14]
 puts " must equal 15"
+
+set str1 "We are abc working at abc company"
+set str2 "Find Tutorial at Tutorial Gateway"
+puts [string last "abc" $str1]
+puts [string last "abc" $str1 5]
+puts [string last "abc" $str1 12]
+puts [string last "Tutorial" $str2]
+puts [string last "Tutorial" $str2 21]

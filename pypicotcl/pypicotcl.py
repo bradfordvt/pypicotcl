@@ -652,6 +652,8 @@ class picolInterp(object):
                 return self.__command_string_first(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "index":
                 return self.__command_string_index(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "last":
+                return self.__command_string_last(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "length":
                 return self.__command_string_length(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "range":
@@ -861,6 +863,27 @@ class picolInterp(object):
             else:
                 self.set_result(s[index])
                 return PICOTCL.PICOTCL_OK
+
+    def __command_string_last(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        if largc >= 2:
+            needleString = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            haystackString = argv[current]
+            lastIndex = len(haystackString)
+            current += 1
+            if current < largc:
+                try:
+                    lastIndex = int(argv[current])
+                except ValueError:
+                    return self.arity_err(cmd + ": see manual page for syntax")
+            self.set_result(str(haystackString.rfind(needleString, 0, lastIndex)))
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
 
     def __command_string_length(self, cmd, argc, argv, pd):
         current = 0
