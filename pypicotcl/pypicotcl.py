@@ -41,6 +41,7 @@ __maintainer__ = "Bradford G. Van Treuren"
 __status__ = "Alpha/Experimental"
 __version__ = "0.0.1"
 
+import re
 import sys
 from argparse import ArgumentError
 from enum import Enum
@@ -656,6 +657,8 @@ class picolInterp(object):
                 return self.__command_string_last(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "length":
                 return self.__command_string_length(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "match":
+                return self.__command_string_match(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "range":
                 return self.__command_string_range(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "repeat":
@@ -893,6 +896,49 @@ class picolInterp(object):
             return PICOTCL.PICOTCL_OK
         else:
             return self.arity_err(cmd + ": length <string>")
+
+    def __command_string_match(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        nocase = 0
+        if largc >= 2:
+            if argv[current].lower() == "-nocase":
+                nocase = 1
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            pattern = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            s = argv[current]
+            plen = len(pattern)
+            re_pattern = ""
+            i = 0
+            while i < plen:
+                if pattern[i] == '*':
+                    re_pattern += ".*"
+                elif pattern[i] == '?':
+                    re_pattern += "."
+                elif pattern[i] == '\\':
+                    re_pattern += (pattern[i] + pattern[i+1])
+                    i += 1
+                else:
+                    re_pattern += pattern[i]
+                i += 1
+            if nocase:
+                p = re.compile(re_pattern, re.IGNORECASE)
+            else:
+                p = re.compile(re_pattern)
+            m = p.match(s)
+            if m:
+                self.set_result('1')
+                return PICOTCL.PICOTCL_OK
+            else:
+                self.set_result('0')
+                return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
 
     def __command_string_range(self, cmd, argc, argv, pd):
         current = 0
