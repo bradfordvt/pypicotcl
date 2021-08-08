@@ -112,3 +112,6 @@ puts "Matching pattern s2 in s1"
 puts [string match "*@*.com" $s1 ]
 puts "Matching pattern tcl in s1"
 puts [string match {tcl} $s1]
+
+puts [string map {abc 1 ab 2 a 3 1 0} 1abcaababcabababc]
+puts [string map {1 0 ab 2 a 3 abc 1} 1abcaababcabababc]

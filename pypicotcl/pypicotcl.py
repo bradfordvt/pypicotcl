@@ -657,6 +657,8 @@ class picolInterp(object):
                 return self.__command_string_last(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "length":
                 return self.__command_string_length(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "map":
+                return self.__command_string_map(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "match":
                 return self.__command_string_match(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "range":
@@ -896,6 +898,91 @@ class picolInterp(object):
             return PICOTCL.PICOTCL_OK
         else:
             return self.arity_err(cmd + ": length <string>")
+
+    def __command_string_map(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        nocase = 0
+        if largc >= 2:
+            if argv[current].lower() == "-nocase":
+                nocase = 1
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            mapping = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            string1 = argv[current]
+            length1 = len(string1)
+            end = length1
+            m = mapping.split()
+            mlen = len(m)
+            if mlen == 0:
+                # empty map so just return the string that was passed
+                self.set_result(string1)
+                return PICOTCL.PICOTCL_OK
+            if mlen & 1:
+                # must have an even number of elements
+                return self.arity_err(cmd + ": wrong number of mapping values")
+            result = ""
+            p = 0
+            index = 0
+            if mlen == 2:
+                # single pair case doesn't need for loop so handle as faster special case
+                string2 = m[0]
+                length2 = len(string2)
+                if length2 > length1 or length2 == 0:
+                    # Match string is either longer than input or empty.
+                    self.set_result(result)
+                    return PICOTCL.PICOTCL_OK
+                else:
+                    while index < length1:
+                        istring1 = string1[index:]
+                        if istring1[0] == string2[0] or (nocase and istring1.tolower() == m[1].tolower()) and (
+                                length2 == 1 or istring1.startswith(string2)):
+                            if p != index:
+                                result += string1[p:index - p]
+                                p = index + length2
+                            else:
+                                p += length2
+                            index = p - 1
+                            result += m[1]
+                        index += 1
+            else:
+                # multi-pair case
+                while index < length1:
+                    istring1 = string1[index:]
+                    for ndx in range(0, mlen, 2):
+                        # Get the key string to match on.
+                        string2 = m[ndx]
+                        length2 = len(string2)
+                        """
+                        if (length2 > 0) &&
+                           ((*ustring1 == *ustring2) || (nocase && (Tcl_UniCharToLower(*ustring1) == u2lc[index/2]))) &&
+                           ((size_t)(end-ustring1) >= length2) &&
+                           ((length2 == 1) || !strCmpFn(ustring2, ustring1, length2))
+                        """
+                        if (length2 > 0) and (
+                                (istring1[0] == string2[0]) or (nocase and istring1.tolower() == string2.tolower())) and (
+                                # Restrict max compare
+                                (length1 - index) >= length2) and (
+                                length2 == 1 or istring1.startswith(string2)):
+                            if p != index:
+                                result += string1[p:index]
+                                p = index + length2
+                            else:
+                                p += length2
+                            index = p - 1
+                            result += m[ndx+1]
+                            break
+                    index += 1
+            if p != index:
+                result += string1[p:index]
+            self.set_result(result)
+            return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
 
     def __command_string_match(self, cmd, argc, argv, pd):
         current = 0
