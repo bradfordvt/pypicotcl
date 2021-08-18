@@ -303,31 +303,6 @@ class picolCallFrame(object):
 
 
 class picolInterp(object):
-    """
-    is_classes = {"alnum": IsClassesEnum.STR_IS_ALNUM,
-                  "alpha": IsClassesEnum.STR_IS_ALPHA,
-                  "ascii": IsClassesEnum.STR_IS_ASCII,
-                  "control": IsClassesEnum.STR_IS_CONTROL,
-                  "boolean": IsClassesEnum.STR_IS_BOOL,
-                  "dict": IsClassesEnum.STR_IS_DICT,
-                  "digit": IsClassesEnum.STR_IS_DIGIT,
-                  "double": IsClassesEnum.STR_IS_DOUBLE,
-                  "entier": IsClassesEnum.STR_IS_ENTIER,
-                  "false": IsClassesEnum.STR_IS_FALSE,
-                  "graph": IsClassesEnum.STR_IS_GRAPH,
-                  "integer": IsClassesEnum.STR_IS_INT,
-                  "list": IsClassesEnum.STR_IS_LIST,
-                  "lower": IsClassesEnum.STR_IS_LOWER,
-                  "print": IsClassesEnum.STR_IS_PRINT,
-                  "punct": IsClassesEnum.STR_IS_PUNCT,
-                  "space": IsClassesEnum.STR_IS_SPACE,
-                  "true": IsClassesEnum.STR_IS_TRUE,
-                  "upper": IsClassesEnum.STR_IS_UPPER,
-                  "unicode": IsClassesEnum.STR_IS_UNICODE,
-                  "wideinteger": IsClassesEnum.STR_IS_WIDE,
-                  "wordchar": IsClassesEnum.STR_IS_WORD,
-                  "xdigit": IsClassesEnum.STR_IS_XDIGIT}
-    """
     def __init__(self):
         self.level = 0  # Level of nesting
         self.callframe = picolCallFrame()
