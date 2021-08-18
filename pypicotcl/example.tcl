@@ -136,10 +136,10 @@ if [string compare $res1 3] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
 if [string is ascii "abc"] { puts "ascii passes"; } else { puts "ascii fails"; }
 if [string is ascii "abc\x80"] { puts "ascii fails"; } else { puts "ascii passes"; }
-if [string is ascii -failindex res1 "abcd\x083"] { puts "ascii fails"; } else { puts "ascii passes"; }
+if [string is ascii -failindex res1 "abcd\x803"] { puts "ascii fails"; } else { puts "ascii passes"; }
 if [string compare $res1 4] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
-if [string is control "123\x01abc"] { puts "control passes"; } else { puts "control fails"; }
+if [string is control "\x01"] { puts "control passes"; } else { puts "control fails"; }
 if [string is control "123!abc"] { puts "control fails"; } else { puts "control passes"; }
 if [string is control -failindex res1 "123!abc"] { puts "control fails"; } else { puts "control passes"; }
 if [string compare $res1 3] { puts "res1 fails"; } else { puts "res1 passed"; }
@@ -147,7 +147,7 @@ puts "res1 = $res1"
 if [string is boolean true] { puts "boolean passes"; } else { puts "boolean fails"; }
 if [string is boolean None] { puts "boolean fails"; } else { puts "boolean passes"; }
 if [string is boolean -failindex res1 None] { puts "boolean fails"; } else { puts "boolean passes"; }
-if [string compare $res1 4] { puts "res1 fails"; } else { puts "res1 passed"; }
+if [string compare $res1 0] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
 if [string is double "123.5"] { puts "double passes"; } else { puts "double fails"; }
 if [string is double "0x123"] { puts "double fails"; } else { puts "double passes"; }
@@ -175,15 +175,15 @@ if [string is lower "abcDEF"] { puts "lower fails"; } else { puts "lower passes"
 if [string is lower -failindex res1 "abcDEF"] { puts "lower fails"; } else { puts "lower passes"; }
 if [string compare $res1 3] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
-if [string is print "abc"] { puts "print passes"; } else { puts "print fails"; }
-if [string is print "abc_\x01"] { puts "print fails"; } else { puts "print passes"; }
+if [string is print "ab c"] { puts "print passes"; } else { puts "print fails"; }
+if [string is print "ab c_\x01"] { puts "print fails"; } else { puts "print passes"; }
 if [string is print -failindex res1 "abc_\x01"] { puts "print fails"; } else { puts "print passes"; }
 if [string compare $res1 4] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
-if [string is graph "123abc"] { puts "graph passes"; } else { puts "graph fails"; }
-if [string is graph "123!abc"] { puts "graph fails"; } else { puts "graph passes"; }
-if [string is graph -failindex res1 "123!abc"] { puts "graph fails"; } else { puts "graph passes"; }
-if [string compare $res1 3] { puts "res1 fails"; } else { puts "res1 passed"; }
+if [string is graph "abc"] { puts "graph passes"; } else { puts "graph fails"; }
+if [string is graph "abc_ \x01"] { puts "graph fails"; } else { puts "graph passes"; }
+if [string is graph -failindex res1 "abc_ \x01"] { puts "graph fails"; } else { puts "graph passes"; }
+if [string compare $res1 4] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
 if [string is punct ";."] { puts "punct passes"; } else { puts "punct fails"; }
 if [string is punct "abc123"] { puts "punct fails"; } else { puts "punct passes"; }
@@ -205,9 +205,9 @@ if [string is upper "ABCdef"] { puts "upper fails"; } else { puts "upper passes"
 if [string is upper -failindex res1 "ABCdef"] { puts "upper fails"; } else { puts "upper passes"; }
 if [string compare $res1 3] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
-if [string is unicode abc] { puts "unicode passes"; } else { puts "unicode fails"; }
+if [string is unicode "\xffabc"] { puts "unicode passes"; } else { puts "unicode fails"; }
 if [string is unicode None] { puts "unicode fails"; } else { puts "unicode passes"; }
-if [string is unicode -failindex res1 None] { puts "unicode fails"; } else { puts "unicode passes"; }
+if [string is unicode -failindex res1 "\xff\xffabc"] { puts "unicode fails"; } else { puts "unicode passes"; }
 if [string compare $res1 4] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
 if [string is wordchar "abc"] { puts "wordchar passes"; } else { puts "wordchar fails"; }
@@ -220,3 +220,8 @@ if [string is xdigit "123abcx"] { puts "xdigit fails"; } else { puts "xdigit pas
 if [string is xdigit -failindex res1 "123xabc"] { puts "xdigit fails"; } else { puts "xdigit passes"; }
 if [string compare $res1 3] { puts "res1 fails"; } else { puts "res1 passed"; }
 puts "res1 = $res1"
+
+puts "\n\nTesting escape sequences:"
+puts "tab\ttest"
+puts "xxxxxxxxxxxxxxxxxx\rret test"
+puts "XXXXXXXXXXXXX\nnewline test\nxxxxxxxxxxxxx"

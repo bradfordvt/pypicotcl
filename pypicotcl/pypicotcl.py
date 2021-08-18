@@ -373,6 +373,45 @@ class picolInterp(object):
                 retcode = PICOTCL.PICOTCL_ERR
         return retcode, bret
 
+    def handle_escape(self, _t):
+        _s = ""
+        in_escape = False
+        index = 0
+        while index < len(_t):
+            c = _t[index]
+            if in_escape:
+                if c == "x":  # Hex unicode utf-8 notation
+                    # next 2 characters represent the byte value
+                    try:
+                        i = int(_t[index + 1:index + 3], 16)
+                        _s += chr(i)
+                    except ValueError as ve:
+                        raise ve
+                    index += 2
+                    in_escape = False
+                elif c == "t":
+                    _s += "\t"
+                    in_escape = False
+                elif c == "n":
+                    _s += "\n"
+                    in_escape = False
+                elif c == "r":
+                    _s += "\r"
+                    in_escape = False
+                elif c == "\\":
+                    in_escape = False
+                    _s = _s + "\\\\"
+                elif c == '"':
+                    in_escape = False
+                    _s += '"'
+            else:
+                if c == "\\":
+                    in_escape = True
+                else:
+                    _s += c
+            index += 1
+        return _s
+
     def eval(self, _t):
         argc = 0
         argv = []
@@ -404,8 +443,9 @@ class picolInterp(object):
                     return retcode
                 _t = self.result
             elif parser.type == TOKEN_TYPES.PT_ESC:
-                # TBD: escape handling missing!
-                pass
+                # Handle escape sequences
+                if "\\" in _t:
+                    _t = self.handle_escape(_t)
             elif parser.type == TOKEN_TYPES.PT_SEP:
                 prevtype = parser.type
                 continue
