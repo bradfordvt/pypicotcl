@@ -42,6 +42,7 @@ __status__ = "Alpha/Experimental"
 __version__ = "0.0.1"
 
 import re
+import string
 import sys
 from argparse import ArgumentError
 from enum import Enum
@@ -63,6 +64,32 @@ class TOKEN_TYPES(Enum):
     PT_SEP = 4
     PT_EOL = 5
     PT_EOF = 6
+
+
+class IsClassesEnum(Enum):
+    STR_IS_ALNUM = 0
+    STR_IS_ALPHA = 1
+    STR_IS_ASCII = 2
+    STR_IS_CONTROL = 3
+    STR_IS_BOOL = 4
+    STR_IS_DICT = 5
+    STR_IS_DIGIT = 6
+    STR_IS_DOUBLE = 7
+    STR_IS_ENTIER = 8
+    STR_IS_FALSE = 9
+    STR_IS_GRAPH = 10
+    STR_IS_INT = 11
+    STR_IS_LIST = 12
+    STR_IS_LOWER = 13
+    STR_IS_PRINT = 14
+    STR_IS_PUNCT = 15
+    STR_IS_SPACE = 16
+    STR_IS_TRUE = 17
+    STR_IS_UPPER = 18
+    STR_IS_UNICODE = 19
+    STR_IS_WIDE = 20
+    STR_IS_WORD = 21
+    STR_IS_XDIGIT = 22
 
 
 class picotclParser(object):
@@ -276,6 +303,31 @@ class picolCallFrame(object):
 
 
 class picolInterp(object):
+    """
+    is_classes = {"alnum": IsClassesEnum.STR_IS_ALNUM,
+                  "alpha": IsClassesEnum.STR_IS_ALPHA,
+                  "ascii": IsClassesEnum.STR_IS_ASCII,
+                  "control": IsClassesEnum.STR_IS_CONTROL,
+                  "boolean": IsClassesEnum.STR_IS_BOOL,
+                  "dict": IsClassesEnum.STR_IS_DICT,
+                  "digit": IsClassesEnum.STR_IS_DIGIT,
+                  "double": IsClassesEnum.STR_IS_DOUBLE,
+                  "entier": IsClassesEnum.STR_IS_ENTIER,
+                  "false": IsClassesEnum.STR_IS_FALSE,
+                  "graph": IsClassesEnum.STR_IS_GRAPH,
+                  "integer": IsClassesEnum.STR_IS_INT,
+                  "list": IsClassesEnum.STR_IS_LIST,
+                  "lower": IsClassesEnum.STR_IS_LOWER,
+                  "print": IsClassesEnum.STR_IS_PRINT,
+                  "punct": IsClassesEnum.STR_IS_PUNCT,
+                  "space": IsClassesEnum.STR_IS_SPACE,
+                  "true": IsClassesEnum.STR_IS_TRUE,
+                  "upper": IsClassesEnum.STR_IS_UPPER,
+                  "unicode": IsClassesEnum.STR_IS_UNICODE,
+                  "wideinteger": IsClassesEnum.STR_IS_WIDE,
+                  "wordchar": IsClassesEnum.STR_IS_WORD,
+                  "xdigit": IsClassesEnum.STR_IS_XDIGIT}
+    """
     def __init__(self):
         self.level = 0  # Level of nesting
         self.callframe = picolCallFrame()
@@ -653,6 +705,8 @@ class picolInterp(object):
                 return self.__command_string_first(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "index":
                 return self.__command_string_index(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "is":
+                return self.__command_string_is(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "last":
                 return self.__command_string_last(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "length":
@@ -679,6 +733,8 @@ class picolInterp(object):
                 return self.__command_string_trimleft(argv[0], argc - 2, argv[2:], pd)
             elif argv[current].lower() == "replace":
                 return self.__command_string_replace(argv[0], argc - 2, argv[2:], pd)
+            elif argv[current].lower() == "is":
+                return self.__command_string_is(argv[0], argc - 2, argv[2:], pd)
 
         else:
             return self.arity_err(argv[0] + ": see manual page for syntax")
@@ -868,6 +924,335 @@ class picolInterp(object):
             else:
                 self.set_result(s[index])
                 return PICOTCL.PICOTCL_OK
+
+    def __command_string_is(self, cmd, argc, argv, pd):
+        current = 0
+        largc = len(argv)
+        strict = 0
+        failindex = 0
+        varname = ""
+        is_classes = {"alnum": self.__is_str_is_alnum,
+                      "alpha": self.__is_str_is_alpha,
+                      "ascii": self.__is_str_is_ascii,
+                      "control": self.__is_str_is_control,
+                      "boolean": self.__is_str_is_bool,
+                      # "dict": self.__is_str_is_dict,
+                      "digit": self.__is_str_is_digit,
+                      "double": self.__is_str_is_double,
+                      "entier": self.__is_str_is_entier,
+                      "false": self.__is_str_is_false,
+                      "graph": self.__is_str_is_graph,
+                      "integer": self.__is_str_is_integer,
+                      # "list": self.__is_str_is_list,
+                      "lower": self.__is_str_is_lower,
+                      "print": self.__is_str_is_print,
+                      "punct": self.__is_str_is_punct,
+                      "space": self.__is_str_is_space,
+                      "true": self.__is_str_is_true,
+                      "upper": self.__is_str_is_upper,
+                      "unicode": self.__is_str_is_unicode,
+                      # "wideinteger": self.__is_str_is_wideinteger,
+                      "wordchar": self.__is_str_is_wordchar,
+                      "xdigit": self.__is_str_is_xdigit}
+
+        if largc >= 2:
+            class_string = argv[current]
+            current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if argv[current].lower() == "-strict":
+                strict = 1
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if argv[current].lower() == "-failindex":
+                failindex = 1
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            if failindex:
+                varname = argv[current]
+                current += 1
+            if current >= largc:
+                return self.arity_err(cmd + ": see manual page for syntax")
+            stringname = argv[current]
+            class_check_func = is_classes.get(class_string, None)
+            if class_check_func:
+                if not strict and stringname == "":
+                    self.set_result("1")
+                    return PICOTCL.PICOTCL_OK
+                elif strict and stringname == "":
+                    self.set_result("0")
+                    return PICOTCL.PICOTCL_OK
+                else:
+                    ret, index = class_check_func(stringname, failindex)
+                    if not ret:
+                        if failindex:
+                            self.set_var(varname, str(index))
+                            self.set_result("0")
+                            return PICOTCL.PICOTCL_OK
+                        else:
+                            self.set_result("0")
+                            return PICOTCL.PICOTCL_OK
+                    else:
+                        self.set_result("1")
+                        return PICOTCL.PICOTCL_OK
+        else:
+            return self.arity_err(cmd + ": see manual page for syntax")
+
+    def __is_str_is_alnum(self, s, failindex):
+        for index in range(len(s)):
+            if not s[index].isalpha() and not s[index].isdigit():
+                return 0, index
+        return 1, 0
+
+    def __is_str_is_alpha(self, s, failindex):
+        for index in range(len(s)):
+            if not s[index].isalpha():
+                return 0, index
+        return 1, 0
+
+    def __is_str_is_digit(self, s, failindex):
+        for index in range(len(s)):
+            if not s[index].isdigit():
+                return 0, index
+        return 1, 0
+
+    def __is_str_is_ascii(self, s, failindex):
+        if self.___is_ascii(s):
+            return 1, 0
+        elif failindex:
+            for index in range(0, len(s)):
+                if self.___is_ascii(s[index]):
+                    continue
+                else:
+                    return 0, index
+        else:
+            return 0, 0
+
+    def ___is_ascii(self, s):
+        try:
+            s.encode('ascii')
+        except UnicodeEncodeError:
+            # string is not ascii
+            return False
+        else:
+            # string is ascii
+            return True
+
+    def __is_str_is_control(self, s, failindex):
+        if self.___is_control(s):
+            return 1, 0
+        elif failindex:
+            for index in range(0, len(s)):
+                if self.___is_control(s[index]):
+                    continue
+                else:
+                    return 0, index
+        else:
+            return 0, 0
+
+    def ___is_control(self, s):
+        if self.___is_ascii(s):
+            if len(s) > 1:
+                return False
+            if ord(s[0]) < 32:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def __is_str_is_bool(self, s, failindex):
+        if s.lower() in ['0', '1', 'true', 'false']:
+            return 1, 0
+        else:
+            return 0, 0
+
+    def __is_str_is_false(self, s, failindex):
+        if s.lower() == "false" or s == "0":
+            return 1, 0
+        elif failindex:
+            f = "false"
+            sl = s.lower()
+            for index in range(0, len(s)):
+                if sl[index] == f[index]:
+                    continue
+                else:
+                    return 0, index
+        else:
+            return 0, 0
+
+    def __is_str_is_true(self, s, failindex):
+        if s.lower() == "true" or s == "1":
+            return 1, 0
+        elif failindex:
+            f = "true"
+            sl = s.lower()
+            for index in range(0, len(s)):
+                if sl[index] == f[index]:
+                    continue
+                else:
+                    return 0, index
+        else:
+            return 0, 0
+
+    def __is_str_is_upper(self, s, failindex):
+        if s.isupper():
+            return 1, 0
+        elif failindex:
+            for index in range(0, len(s)):
+                if s[index].isupper():
+                    continue
+                else:
+                    return 0, index
+        else:
+            return 0, 0
+
+    def __is_str_is_lower(self, s, failindex):
+        if s.islower():
+            return 1, 0
+        elif failindex:
+            for index in range(0, len(s)):
+                if s[index].islower():
+                    continue
+                else:
+                    return 0, index
+        else:
+            return 0, 0
+
+    def __is_str_is_unicode(self, s, failindex):
+        try:
+            s.decode("utf-8", "strict")
+            return 1, 0
+        except UnicodeDecodeError:
+            if failindex:
+                for index in range(0, len(s)):
+                    if self.__is_str_is_unicode(s[index], 0)[0]:
+                        continue
+                    else:
+                        return 0, index
+            else:
+                return 0, 0
+        except AttributeError:
+            return 1, 0
+
+    def __is_str_is_integer(self, s, failindex):
+        try:
+            int(s)
+            return 1, 0
+        except ValueError:
+            try:
+                int(s, 16)
+                return 1, 0
+            except ValueError:
+                try:
+                    int(s, 8)
+                    return 1, 0
+                except ValueError:
+                    try:
+                        int(s, 2)
+                        return 1, 0
+                    except ValueError:
+                        if failindex:
+                            for index in range(0, len(s)):
+                                if self.__is_str_is_digit(s[index], 0)[0]:
+                                    continue
+                                else:
+                                    return 0, index
+                        else:
+                            return 0, 0
+
+    def __is_str_is_entier(self, s, failindex):
+        return self.__is_str_is_integer(s, failindex)
+
+    def __is_str_is_xdigit(self, s, failindex):
+        try:
+            int(s, 16)
+            return 1, 0
+        except ValueError:
+            if failindex:
+                for index in range(0, len(s)):
+                    try:
+                        if int(s[index], 16):
+                            continue
+                        else:
+                            return 0, index
+                    except ValueError:
+                        return 0, index
+            else:
+                return 0, 0
+
+    def __is_str_is_double(self, s, failindex):
+        try:
+            float(s)
+            return 1, 0
+        except ValueError:
+            if failindex:
+                for index in range(0, len(s)):
+                    if self.__is_str_is_digit(s[index], 0)[0] or s[index] == ".":
+                        continue
+                    else:
+                        return 0, index
+            else:
+                return 0, 0
+
+    def __is_str_is_print(self, s, failindex):
+        if s.isprintable():
+            return 1, 0
+        elif failindex:
+            for index in range(0, len(s)):
+                if s[index].isprintable():
+                    continue
+                else:
+                    return 0, index
+        else:
+            return 0, 0
+
+    def __is_str_is_punct(self, s, failindex):
+        for index in range(0, len(s)):
+            if s[index] in string.punctuation:
+                continue
+            else:
+                if failindex:
+                    return 0, index
+                else:
+                    return 0, 0
+        return 1, 0
+
+    def __is_str_is_graph(self, s, failindex):
+        for index in range(0, len(s)):
+            if not s[index].isspace() and s[index].isprintable():
+                continue
+            else:
+                if failindex:
+                    return 0, index
+                else:
+                    return 0, 0
+        return 1, 0
+
+    def __is_str_is_space(self, s, failindex):
+        if s.isspace():
+            return 1, 0
+        elif failindex:
+            for index in range(0, len(s)):
+                if s[index].isspace():
+                    continue
+                else:
+                    return 0, index
+        else:
+            return 0, 0
+
+    def __is_str_is_wordchar(self, s, failindex):
+        for index in range(0, len(s)):
+            if s[index].isalpha() or s[index].isdigit()or s[index] == "_":
+                continue
+            else:
+                if failindex:
+                    return 0, index
+                else:
+                    return 0, 0
+        return 1, 0
 
     def __command_string_last(self, cmd, argc, argv, pd):
         current = 0
